@@ -25,7 +25,6 @@ export function ChatArea({ chatId, onChatCreated }: ChatAreaProps) {
     <ChatLoader
       key={sessionId}
       chatId={sessionId}
-      persisted={chatId !== null}
       onChatCreated={(id) => {
         onChatCreated(id);
         setDraftId(newId());
@@ -36,13 +35,20 @@ export function ChatArea({ chatId, onChatCreated }: ChatAreaProps) {
 
 interface ChatLoaderProps {
   chatId: string;
-  persisted: boolean;
   onChatCreated: (id: string) => void;
 }
 
 /** Waits for the chat's messages, then mounts the session with them as initial `useChat` messages. */
-function ChatLoader({ chatId, persisted, onChatCreated }: ChatLoaderProps) {
-  const { messages } = useCollections();
+function ChatLoader({ chatId, onChatCreated }: ChatLoaderProps) {
+  const { chats, messages } = useCollections();
+  // Only a chat that exists in the database is "persisted"; an unknown id in the URL
+  // (e.g. a deleted chat reached with Back) starts a fresh chat under that id.
+  const { data: chat } = useLiveQuery((q) =>
+    q
+      .from({ chat: chats })
+      .where(({ chat }) => eq(chat.id, chatId))
+      .findOne(),
+  );
   const { data, isReady } = useLiveQuery((q) =>
     q
       .from({ message: messages })
@@ -51,5 +57,5 @@ function ChatLoader({ chatId, persisted, onChatCreated }: ChatLoaderProps) {
   );
 
   if (!isReady) return <div className="h-full" data-testid="chat-area" aria-busy="true" />;
-  return <ChatSession chatId={chatId} persisted={persisted} dbMessages={data} onChatCreated={onChatCreated} />;
+  return <ChatSession chatId={chatId} persisted={Boolean(chat)} dbMessages={data} onChatCreated={onChatCreated} />;
 }

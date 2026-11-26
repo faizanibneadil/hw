@@ -73,7 +73,7 @@ if ((await first.locator("table tbody tr").count()) !== 2) fail("table rows wron
 if ((await first.locator("strong").first().innerText()) !== "Total: X / 4") fail("total not bold");
 if ((await first.locator("ul li").count()) !== 2) fail("improvements list wrong");
 let text = await first.innerText();
-if (!text.includes("mock systems=2 files=main.py,snippet-1 turns=1 history=1")) fail(`first answer context wrong:\n${text}`);
+if (!text.includes("mock systems=2 files=main.py,snippet-1 turns=1 history=1 fencesInHistory=false")) fail(`first answer context wrong:\n${text}`);
 // copy puts the raw Markdown on the clipboard
 await page.getByRole("button", { name: "Copy result" }).first().click();
 await page.getByRole("button", { name: "Copied" }).waitFor();
@@ -89,7 +89,7 @@ await assistants.nth(1).getByText("Improvements").waitFor({ timeout: 15000 });
 text = await assistants.nth(1).innerText();
 const row2 = await assistants.nth(1).locator("table tbody tr").nth(1).locator("td").allInnerTexts();
 if (row2.join("|") !== "Item 2|2 / 2|follow-up aware") fail(`follow-up correction ignored: ${row2}`);
-if (!text.includes("files=main.py,snippet-1 turns=2 history=3")) fail(`follow-up context wrong:\n${text}`);
+if (!text.includes("files=main.py,snippet-1 turns=2 history=3 fencesInHistory=false")) fail(`follow-up context wrong:\n${text}`);
 
 // 5. Stop while streaming
 step = "5";

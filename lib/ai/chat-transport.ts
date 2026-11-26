@@ -3,7 +3,7 @@ import { DirectChatTransport, ToolLoopAgent, stepCountIs, type InferAgentUIMessa
 
 import { MAX_OUTPUT_TOKENS, getModelConfig } from "@/lib/ai/models";
 import { SYSTEM_PROMPT } from "@/lib/ai/system-prompt";
-import { estimateTokens, formatLockedCode, trimHistory, type LockedCode } from "@/lib/ai/context";
+import { estimateTokens, formatLockedCode, referenceFirstMessageCode, trimHistory, type LockedCode } from "@/lib/ai/context";
 import { modelManager } from "@/lib/ai/model-manager";
 
 /**
@@ -46,7 +46,7 @@ export function createChatTransport(getLockedCode: () => LockedCode) {
           { role: "system", content: SYSTEM_PROMPT },
           { role: "system", content: codeMessage },
         ],
-        messages: trimHistory(messages, Math.max(budget, 0)),
+        messages: trimHistory(referenceFirstMessageCode(messages), Math.max(budget, 0)),
       };
     },
   });

@@ -22,6 +22,9 @@ export function createMockModel(modelId: string): LanguageModelV3 {
         lastUser && lastUser.role === "user"
           ? lastUser.content.map((p) => (p.type === "text" ? p.text : "")).join(" ")
           : "";
+      const historyHasFence = prompt.some(
+        (m) => m.role === "user" && m.content.some((p) => p.type === "text" && p.text.includes("```")),
+      );
       const files = [...(systems[1] ?? "").matchAll(/### File: (\S+)/g)].map((m) => m[1]);
       const text = [
         "## Result",
@@ -33,13 +36,14 @@ export function createMockModel(modelId: string): LanguageModelV3 {
         "**Total: X / 4**",
         "",
         "### How the marks were given",
-        `mock systems=${systems.length} files=${files.join(",")} turns=${users.length} history=${prompt.length - systems.length}`,
+        `mock systems=${systems.length} files=${files.join(",")} turns=${users.length} history=${prompt.length - systems.length} fencesInHistory=${historyHasFence}`,
         "",
         "### Improvements",
         "- Add comments.",
         "- Use clearer names.",
       ].join("\n");
       const words = text.split(/(?<=\s)/);
+      const wordDelay = Number(new URLSearchParams(window.location.search).get("wordDelay") ?? 25);
       const signal = options.abortSignal;
       const stream = new ReadableStream<LanguageModelV3StreamPart>({
         async start(controller) {
@@ -48,7 +52,7 @@ export function createMockModel(modelId: string): LanguageModelV3 {
           for (const word of words) {
             if (signal?.aborted) break;
             controller.enqueue({ type: "text-delta", id: "t", delta: word });
-            await new Promise((r) => setTimeout(r, 25));
+            await new Promise((r) => setTimeout(r, wordDelay));
           }
           controller.enqueue({ type: "text-end", id: "t" });
           controller.enqueue({

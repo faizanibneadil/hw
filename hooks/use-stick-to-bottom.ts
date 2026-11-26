@@ -1,26 +1,40 @@
 "use client";
 
-import { useEffect, useLayoutEffect, useRef } from "react";
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 
-/** Keeps a scroll container pinned to the bottom while content grows, unless the user scrolled up. */
+const NEAR_BOTTOM = 80;
+
+/**
+ * Keeps a scroll container pinned to the bottom while content grows, unless the user scrolled up.
+ * Returns a callback ref, so it also works when the container mounts later (e.g. after an empty state).
+ */
 export function useStickToBottom<T extends HTMLElement>(dependency: unknown) {
-  const ref = useRef<T>(null);
+  const [element, setElement] = useState<T | null>(null);
   const pinned = useRef(true);
+  /** scrollTop right after our last automatic scroll. */
+  const autoTop = useRef(0);
 
   useEffect(() => {
-    const el = ref.current;
-    if (!el) return;
+    if (!element) return;
+    pinned.current = true;
+    autoTop.current = 0;
     const onScroll = () => {
-      pinned.current = el.scrollHeight - el.scrollTop - el.clientHeight < 80;
+      const fromBottom = element.scrollHeight - element.scrollTop - element.clientHeight;
+      if (fromBottom < NEAR_BOTTOM) pinned.current = true;
+      else if (element.scrollTop < autoTop.current - 2) pinned.current = false;
     };
-    el.addEventListener("scroll", onScroll, { passive: true });
-    return () => el.removeEventListener("scroll", onScroll);
-  }, []);
+    element.addEventListener("scroll", onScroll, { passive: true });
+    return () => element.removeEventListener("scroll", onScroll);
+  }, [element]);
 
   useLayoutEffect(() => {
-    const el = ref.current;
-    if (el && pinned.current) el.scrollTop = el.scrollHeight;
-  }, [dependency]);
+    if (!element) return;
+    // The user moved up since our last automatic scroll (the scroll event may not have fired yet).
+    if (element.scrollTop < autoTop.current - 2) pinned.current = false;
+    if (!pinned.current) return;
+    element.scrollTo({ top: element.scrollHeight });
+    autoTop.current = element.scrollTop;
+  }, [element, dependency]);
 
-  return ref;
+  return useCallback((node: T | null) => setElement(node), []);
 }

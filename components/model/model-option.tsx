@@ -12,6 +12,8 @@ interface ModelOptionProps {
   model: ModelConfig;
   status: ModelStatus | undefined;
   active: boolean;
+  /** Selection is temporarily disabled (a response is generating). */
+  locked: boolean;
   onSelected: () => void;
 }
 
@@ -39,8 +41,8 @@ function statusText(status: ModelStatus | undefined, active: boolean): string {
 }
 
 /** One model row: select it when downloaded, otherwise show Download / progress / Retry. */
-export function ModelOption({ model, status, active, onSelected }: ModelOptionProps) {
-  const selectable = isSelectable(status);
+export function ModelOption({ model, status, active, locked, onSelected }: ModelOptionProps) {
+  const selectable = isSelectable(status) && (!locked || active);
   const progress = status?.kind === "downloading" || status?.kind === "loading" ? status.progress : null;
 
   return (

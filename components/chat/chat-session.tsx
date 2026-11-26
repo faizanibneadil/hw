@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useChat } from "@ai-sdk/react";
 
 import type { ChatMessage } from "@/lib/db/types";
@@ -53,7 +53,8 @@ export function ChatSession({ chatId, persisted, dbMessages, onChatCreated }: Ch
     transport,
     experimental_throttle: 50,
     onFinish: ({ message, isAbort, isError, isDisconnect }) => {
-      if (message.role !== "assistant") return;
+      // The chat may have been deleted while the answer was streaming.
+      if (message.role !== "assistant" || !collections.chats.has(chatId)) return;
       const content = textOf(message);
       if (!content.trim()) return;
       addMessage(collections, {
@@ -65,6 +66,13 @@ export function ChatSession({ chatId, persisted, dbMessages, onChatCreated }: Ch
       });
     },
   });
+
+  // Leaving the chat (navigation, delete) stops its generation so the model worker is free.
+  const stopRef = useRef(stop);
+  useEffect(() => {
+    stopRef.current = stop;
+  });
+  useEffect(() => () => void stopRef.current(), []);
 
   const dbById = useMemo(() => new Map(dbMessages.map((m) => [m.id, m])), [dbMessages]);
   const busy = status === "submitted" || status === "streaming";
@@ -117,7 +125,7 @@ export function ChatSession({ chatId, persisted, dbMessages, onChatCreated }: Ch
         sendBlockedReason={modelReady ? undefined : "The model is still loading. You can send once it is ready."}
         onSubmit={handleSubmit}
         onStop={() => void stop()}
-        modelSelector={<ModelSelector />}
+        modelSelector={<ModelSelector locked={busy} />}
       />
     </div>
   );

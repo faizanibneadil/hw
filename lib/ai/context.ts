@@ -1,6 +1,6 @@
 import type { ModelMessage } from "ai";
 
-import { extractCodeBlocks } from "@/lib/editor/code-blocks";
+import { extractCodeBlocks, replaceCodeBlocks } from "@/lib/editor/code-blocks";
 
 export interface LockedFile {
   name: string;
@@ -66,4 +66,20 @@ export function trimHistory(messages: ModelMessage[], budgetTokens: number): Mod
   }
   while (kept.length > 1 && kept[0].role !== "user") kept.shift();
   return kept;
+}
+
+/**
+ * The first user message's code blocks are already in the locked student code (as snippet-N),
+ * so in the history they are replaced by a short reference instead of being sent twice.
+ */
+export function referenceFirstMessageCode(messages: ModelMessage[]): ModelMessage[] {
+  const first = messages[0];
+  if (!first || first.role !== "user") return messages;
+  const toText = (text: string) =>
+    replaceCodeBlocks(text, (i) => `[code block snippet-${i}: see the student code above]`);
+  const content =
+    typeof first.content === "string"
+      ? toText(first.content)
+      : first.content.map((part) => (part.type === "text" ? { ...part, text: toText(part.text) } : part));
+  return [{ ...first, content } as ModelMessage, ...messages.slice(1)];
 }

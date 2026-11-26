@@ -8,7 +8,7 @@
     "lint": "eslint",
     "typecheck": "tsc --noEmit",
     "serve": "node e2e/serve.mjs",
-    "e2e": "node e2e/smoke.mjs && node e2e/persistence.mjs && node e2e/editor.mjs && node e2e/chat.mjs && node e2e/real-model.mjs && node e2e/keyboard.mjs && node e2e/a11y.mjs",
+    "e2e": "node e2e/smoke.mjs && node e2e/persistence.mjs && node e2e/editor.mjs && node e2e/chat.mjs && node e2e/real-model.mjs && node e2e/keyboard.mjs && node e2e/a11y.mjs && node e2e/regressions.mjs",
     "screens": "node e2e/screens.mjs"
   },
   "dependencies": {
