@@ -9,9 +9,25 @@
     "lint": "eslint"
   },
   "dependencies": {
+    "@ai-sdk/react": "3.0.341",
+    "@browser-ai/transformers-js": "2.2.4",
+    "@huggingface/transformers": "4.3.2",
+    "@tanstack/db": "1.0.0-rc.1.5",
+    "@tanstack/highlight": "1.2.12",
+    "@tanstack/markdown": "1.2.1",
+    "@tanstack/react-db": "1.0.0-rc.1.5",
+    "@tiptap/extension-code-block-lowlight": "3.35.0",
+    "@tiptap/markdown": "3.35.0",
+    "@tiptap/pm": "3.35.0",
+    "@tiptap/react": "3.35.0",
+    "@tiptap/starter-kit": "3.35.0",
+    "ai": "6.0.338",
+    "lowlight": "3.3.0",
     "next": "16.4.6",
+    "next-themes": "0.4.6",
     "react": "19.3.0",
-    "react-dom": "19.3.0"
+    "react-dom": "19.3.0",
+    "react-resizable-panels": "4.24.3"
   },
   "devDependencies": {
     "@tailwindcss/turbopack": "4.3.3",
