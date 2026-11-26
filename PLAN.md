@@ -61,3 +61,15 @@ workers/        llm.worker.ts (TransformersJSWorkerHandler), cache.worker.ts (is
    also inserts files and stores locked code. `useChat.onFinish` writes the assistant
    message with status `done | stopped | error`.
 5. Assistant text renders with `@tanstack/markdown` + streaming extension.
+
+## Decisions made during the build
+- `cacheComponents` / `partialPrefetching` removed from `next.config.ts`: Next.js refuses PPR with
+  `output: "export"` (static export is required).
+- shadcn/ui components were added by hand (same source as the registry): `ui.shadcn.com` is
+  unreachable from the build environment.
+- ONNX Runtime `.wasm` (~26 MB) exceeds Cloudflare's 25 MiB file limit; Transformers.js already
+  loads it from jsDelivr, so `scripts/postbuild.mjs` removes the unused bundled copy and checks sizes.
+- Touch-only devices: Enter inserts a new line (no Shift+Enter on virtual keyboards); Send button sends.
+- First-message code blocks are sent once (in the locked-code system message) and referenced as
+  `snippet-N` in the history.
+- A test-only mock model (`?e2e=mock`) makes the chat flow testable without downloading models.
