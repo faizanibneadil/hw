@@ -9,9 +9,16 @@ import { CodeBlockView } from "@/components/prompt/code-block-view";
 
 export const SUBMIT_EVENT = "hw:submit";
 
+/** Touch-only devices (phones): on-screen keyboards have no Shift+Enter, so Enter must add a line. */
+function isTouchOnlyDevice(): boolean {
+  if (typeof window === "undefined" || !window.matchMedia) return false;
+  return window.matchMedia("(pointer: coarse)").matches && !window.matchMedia("(any-pointer: fine)").matches;
+}
+
 /**
  * Enter sends (dispatches `SUBMIT_EVENT`); Shift+Enter starts a new line (new list item / paragraph).
  * Inside a code block Enter is left to the code block (newline); Shift+Enter also inserts a newline.
+ * On touch-only devices Enter adds a new line and the Send button sends.
  */
 const SubmitOnEnter = Extension.create({
   name: "submitOnEnter",
@@ -19,7 +26,7 @@ const SubmitOnEnter = Extension.create({
   addKeyboardShortcuts() {
     return {
       Enter: ({ editor }) => {
-        if (editor.isActive("codeBlock")) return false;
+        if (editor.isActive("codeBlock") || isTouchOnlyDevice()) return false;
         editor.view.dom.dispatchEvent(new CustomEvent(SUBMIT_EVENT));
         return true;
       },

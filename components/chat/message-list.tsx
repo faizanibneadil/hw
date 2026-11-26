@@ -8,6 +8,7 @@ import type { ChatUIMessage } from "@/lib/ai/chat-transport";
 import { useStickToBottom } from "@/hooks/use-stick-to-bottom";
 import { AssistantMessage } from "@/components/chat/assistant-message";
 import { EmptyState } from "@/components/chat/empty-state";
+import { MarkdownContent } from "@/components/markdown/markdown-content";
 import { ThinkingIndicator } from "@/components/chat/thinking-indicator";
 import { UserMessage } from "@/components/chat/user-message";
 
@@ -43,7 +44,7 @@ export function MessageList({ messages, dbById, status, children }: MessageListP
           if (message.role === "user") {
             return (
               <UserMessage key={message.id} fileNames={stored?.fileNames}>
-                <pre className="text-sm whitespace-pre-wrap">{text}</pre>
+                <MarkdownContent>{text}</MarkdownContent>
               </UserMessage>
             );
           }

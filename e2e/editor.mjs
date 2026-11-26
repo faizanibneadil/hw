@@ -73,9 +73,25 @@ await page.keyboard.press("Enter");
 step = "4";
 const userMsg = page.locator("[data-role=user]").first();
 await userMsg.waitFor();
-const content = await userMsg.locator("pre").innerText();
+// rendered Markdown: paragraph + highlighted python code block with preserved indentation
+await userMsg.locator("p", { hasText: "Check item 1" }).waitFor();
+const code = await userMsg.locator("pre.tm-code code").innerText();
+if (code !== "def f():\n  return 1") fail(`code block mismatch: ${JSON.stringify(code)}`);
+if (!(await userMsg.locator("pre.tm-code .th-keyword").count())) fail("user code block not highlighted");
+const storedMarkdown = await page.evaluate(async () => {
+  const db = await new Promise((res) => {
+    const r = indexedDB.open("hw");
+    r.onsuccess = () => res(r.result);
+  });
+  const all = await new Promise((res) => {
+    const r = db.transaction("messages").objectStore("messages").getAll();
+    r.onsuccess = () => res(r.result);
+  });
+  db.close();
+  return all.find((m) => m.role === "user")?.content;
+});
 const expected = "Check item 1\n\n```python\ndef f():\n  return 1\n```\n\nThanks";
-if (content !== expected) fail(`markdown mismatch:\n${JSON.stringify(content)}\nexpected\n${JSON.stringify(expected)}`);
+if (storedMarkdown !== expected) fail(`markdown mismatch:\n${JSON.stringify(storedMarkdown)}\nexpected\n${JSON.stringify(expected)}`);
 if ((await userMsg.getByLabel("Attached files").locator("span").filter({ hasText: /\.(py|js|css|html|java)$/ }).count()) < 1)
   fail("file chips not shown on message");
 await page.getByRole("button", { name: "Check item 1", exact: true }).waitFor();

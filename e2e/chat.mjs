@@ -4,7 +4,7 @@ import { chromium, BASE } from "./helpers.mjs";
 
 const base = BASE;
 const browser = await chromium.launch();
-const context = await browser.newContext({ viewport: { width: 1280, height: 900 } });
+const context = await browser.newContext({ viewport: { width: 1280, height: 900 }, permissions: ["clipboard-read", "clipboard-write"] });
 const page = await context.newPage();
 const errors = [];
 let step = "load";
@@ -61,13 +61,24 @@ await page.keyboard.press("ArrowDown");
 await page.keyboard.type("Check: 1) add works (2 marks) 2) has tests (2 marks)");
 await page.keyboard.press("Enter");
 await page.getByRole("button", { name: "Stop generating" }).waitFor();
+// streams live: the table is rendered while the answer is still being generated
+await assistants.first().locator("table tbody tr").first().waitFor();
+if (!(await page.getByRole("button", { name: "Stop generating" }).isVisible())) fail("table only appeared after streaming");
 await assistants.first().getByText("Improvements").waitFor({ timeout: 15000 });
 await page.getByRole("button", { name: "Send" }).waitFor();
-let text = await assistants.first().innerText();
-for (const s of ["## Result", "**Total: X / 4**", "mock systems=2 files=main.py,snippet-1 turns=1 history=1"]) {
-  if (!text.includes(s)) fail(`first answer missing ${s}:\n${text}`);
-}
-await page.getByRole("button", { name: "Copy result" }).first().waitFor();
+const first = assistants.first();
+if ((await first.locator("h2").innerText()) !== "Result") fail("no Result heading");
+if ((await first.locator("table thead th").allInnerTexts()).join("|") !== "What was checked|Marks|Why") fail("table header wrong");
+if ((await first.locator("table tbody tr").count()) !== 2) fail("table rows wrong");
+if ((await first.locator("strong").first().innerText()) !== "Total: X / 4") fail("total not bold");
+if ((await first.locator("ul li").count()) !== 2) fail("improvements list wrong");
+let text = await first.innerText();
+if (!text.includes("mock systems=2 files=main.py,snippet-1 turns=1 history=1")) fail(`first answer context wrong:\n${text}`);
+// copy puts the raw Markdown on the clipboard
+await page.getByRole("button", { name: "Copy result" }).first().click();
+await page.getByRole("button", { name: "Copied" }).waitFor();
+const clip = await page.evaluate(() => navigator.clipboard.readText());
+if (!clip.startsWith("## Result\n| What was checked | Marks | Why |")) fail(`clipboard: ${clip.slice(0, 80)}`);
 
 // 4. Follow-up correction uses the same locked code and the history
 step = "4";
@@ -76,7 +87,8 @@ await page.keyboard.type("item 2 is actually done in main.py line 12");
 await page.keyboard.press("Enter");
 await assistants.nth(1).getByText("Improvements").waitFor({ timeout: 15000 });
 text = await assistants.nth(1).innerText();
-if (!text.includes("| Item 2 | 2 / 2 |")) fail("follow-up correction ignored");
+const row2 = await assistants.nth(1).locator("table tbody tr").nth(1).locator("td").allInnerTexts();
+if (row2.join("|") !== "Item 2|2 / 2|follow-up aware") fail(`follow-up correction ignored: ${row2}`);
 if (!text.includes("files=main.py,snippet-1 turns=2 history=3")) fail(`follow-up context wrong:\n${text}`);
 
 // 5. Stop while streaming

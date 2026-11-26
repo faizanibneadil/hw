@@ -1,5 +1,6 @@
 import type { MessageStatus } from "@/lib/db/types";
 import { CopyButton } from "@/components/chat/copy-button";
+import { MarkdownContent } from "@/components/markdown/markdown-content";
 
 interface AssistantMessageProps {
   text: string;
@@ -10,8 +11,8 @@ interface AssistantMessageProps {
 export function AssistantMessage({ text, streaming, status }: AssistantMessageProps) {
   return (
     <div className="group/assistant flex flex-col gap-1" data-role="assistant" aria-busy={streaming}>
-      <div className="min-w-0 text-sm" data-testid="assistant-content">
-        <pre className="whitespace-pre-wrap">{text}</pre>
+      <div className="min-w-0" data-testid="assistant-content">
+        <MarkdownContent streaming={streaming}>{text}</MarkdownContent>
       </div>
       {!streaming && text && (
         <div className="flex items-center gap-2 text-xs text-muted-foreground">

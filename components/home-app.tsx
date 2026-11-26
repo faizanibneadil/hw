@@ -9,6 +9,7 @@ import { AppShell } from "@/components/layout/app-shell";
 import { AppSidebar } from "@/components/sidebar/app-sidebar";
 import { ChatArea } from "@/components/chat/chat-area";
 import { DbStatus } from "@/components/layout/db-status";
+import { MarkdownTheme } from "@/components/markdown/markdown-theme";
 
 /** Client root of the app. */
 export function HomeApp() {
@@ -18,9 +19,12 @@ export function HomeApp() {
   }, []);
 
   return (
-    <DbProvider fallback={(state) => <DbStatus state={state} />}>
-      <App />
-    </DbProvider>
+    <>
+      <MarkdownTheme />
+      <DbProvider fallback={(state) => <DbStatus state={state} />}>
+        <App />
+      </DbProvider>
+    </>
   );
 }
 
