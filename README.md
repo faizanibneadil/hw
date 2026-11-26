@@ -41,11 +41,11 @@ pnpm lint
 pnpm build
 ```
 
-`pnpm build` runs `next build` (static export to `out/`) and then `scripts/postbuild.mjs`, which:
-
-- removes the ONNX Runtime `.wasm` binary the bundler copies into `out/` (~26 MB, over Cloudflare's
-  limit). It is never used: Transformers.js loads ONNX Runtime from the jsDelivr CDN at runtime.
-- fails the build if any file in `out/` is larger than Cloudflare Pages' 25 MiB per-file limit.
+`next.config.ts` aliases `onnxruntime-web/webgpu` to ONNX Runtime's external-wasm build
+(`ort.webgpu.min.mjs`). The default build makes the bundler copy a 25.6 MiB `.wasm` into `out/`,
+over Cloudflare Pages' 25 MiB file limit. Transformers.js loads the wasm from the jsDelivr CDN at
+runtime anyway, so plain `next build` / `npx next build` produces a deployable `out/`.
+`pnpm build` additionally runs `scripts/postbuild.mjs`, which fails if any file exceeds 25 MiB.
 
 End-to-end tests (Playwright + Chromium) run against the built `out/` folder:
 
@@ -69,7 +69,7 @@ Connect the repository in Cloudflare Pages with these settings:
 | Setting | Value |
 |---|---|
 | Framework preset | None (or Next.js (Static HTML Export)) |
-| Build command | `pnpm build` |
+| Build command | `pnpm build` (`npx next build` also works) |
 | Build output directory | `out` |
 | Environment variable | `NODE_VERSION` = `22` |
 

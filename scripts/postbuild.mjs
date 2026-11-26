@@ -1,8 +1,8 @@
-// Post-build checks for Cloudflare Pages (static `out/`):
-// 1. Remove the ONNX Runtime .wasm binaries the bundler copied into `out/`. They are never
-//    loaded: Transformers.js sets `env.backends.onnx.wasm.wasmPaths` to the jsDelivr CDN
-//    (onnxruntime-web/dist) at runtime, and the file (~26 MB) exceeds the 25 MiB limit.
-// 2. Fail if any remaining file exceeds Cloudflare Pages' 25 MiB per-file limit.
+// Post-build safety check for Cloudflare Pages (static `out/`), run by `pnpm build`.
+// next.config.ts already aliases onnxruntime-web to its external-wasm build, so no ONNX Runtime
+// .wasm should be emitted (it is loaded from the jsDelivr CDN at runtime). This script:
+// 1. removes any ONNX Runtime .wasm that still ends up in `out/` (belt and braces),
+// 2. fails if any file exceeds Cloudflare Pages' 25 MiB per-file limit.
 import { readdir, stat, unlink } from "node:fs/promises";
 import { join } from "node:path";
 
