@@ -7,14 +7,21 @@ export function newId(): string {
 
 const MAX_TITLE = 60;
 
-/** Title from the first prompt (Markdown stripped), else from the first file name. */
+/** Title from the first prose line of the prompt (Markdown stripped), else from the first file name. */
 export function makeTitle(prompt: string, fileNames: string[]): string {
-  const text = prompt
-    .replace(/```[\s\S]*?(```|$)/g, " ")
-    .replace(/[#>*_`~[\]()|-]/g, " ")
-    .replace(/\s+/g, " ")
-    .trim();
-  const base = text || fileNames[0] || "New chat";
+  const firstLine =
+    prompt
+      .replace(/(```|~~~)[\s\S]*?(\1|$)/g, "\n")
+      .split("\n")
+      .map((line) =>
+        line
+          .replace(/^\s*(#{1,6}\s+|[-*+]\s+|\d+[.)]\s+)/, "")
+          .replace(/[*_`~]/g, "")
+          .replace(/\s+/g, " ")
+          .trim(),
+      )
+      .find(Boolean) ?? "";
+  const base = firstLine || fileNames[0] || "New chat";
   return base.length > MAX_TITLE ? `${base.slice(0, MAX_TITLE - 1).trimEnd()}…` : base;
 }
 

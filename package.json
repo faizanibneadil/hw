@@ -8,7 +8,7 @@
     "lint": "eslint",
     "typecheck": "tsc --noEmit",
     "serve": "node e2e/serve.mjs",
-    "e2e": "node e2e/smoke.mjs && node e2e/persistence.mjs"
+    "e2e": "node e2e/smoke.mjs && node e2e/persistence.mjs && node e2e/editor.mjs"
   },
   "dependencies": {
     "@ai-sdk/react": "3.0.341",
@@ -19,6 +19,7 @@
     "@tanstack/markdown": "1.2.1",
     "@tanstack/react-db": "1.0.0-rc.1.5",
     "@tiptap/extension-code-block-lowlight": "3.35.0",
+    "@tiptap/extensions": "3.35.0",
     "@tiptap/markdown": "3.35.0",
     "@tiptap/pm": "3.35.0",
     "@tiptap/react": "3.35.0",

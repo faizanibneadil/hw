@@ -40,7 +40,8 @@ if (order.join("|") !== "Newer chat|Older chat") fail(`wrong order: ${order}`);
 
 // Open a chat
 await page.getByRole("button", { name: "Older chat", exact: true }).click();
-await page.getByTestId("chat-area").getByText("Older chat").waitFor();
+await page.getByTestId("chat-area").getByText("hi", { exact: true }).waitFor();
+await page.locator("[aria-current=page]", { hasText: "Older chat" }).waitFor();
 if (!page.url().endsWith("#a")) fail("active chat not in hash");
 
 // Rename
@@ -48,7 +49,7 @@ await page.getByRole("button", { name: "Options for Older chat" }).click();
 await page.getByRole("menuitem", { name: "Rename" }).click();
 await page.getByLabel("Chat name").fill("Renamed chat");
 await page.getByRole("button", { name: "Save" }).click();
-await page.getByTestId("chat-area").getByText("Renamed chat").waitFor();
+await page.locator("[aria-current=page]", { hasText: "Renamed chat" }).waitFor();
 
 // Delete (with confirmation) the open chat -> cascades
 await page.getByRole("button", { name: "Options for Renamed chat" }).click();
