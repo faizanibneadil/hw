@@ -1,22 +1,37 @@
 "use client";
 
+import { DbProvider } from "@/lib/db/db-context";
+import { useActiveChat } from "@/hooks/use-active-chat";
 import { AppShell } from "@/components/layout/app-shell";
-import { ThemeToggle } from "@/components/theme/theme-toggle";
+import { AppSidebar } from "@/components/sidebar/app-sidebar";
+import { ChatArea } from "@/components/chat/chat-area";
+import { DbStatus } from "@/components/layout/db-status";
 
 /** Client root of the app. */
 export function HomeApp() {
   return (
+    <DbProvider fallback={(state) => <DbStatus state={state} />}>
+      <App />
+    </DbProvider>
+  );
+}
+
+function App() {
+  const [activeChatId, setActiveChatId] = useActiveChat();
+
+  return (
     <AppShell
-      sidebar={() => (
-        <div className="flex h-full flex-col p-3">
-          <div className="flex items-center justify-between">
-            <span className="font-semibold">hw</span>
-            <ThemeToggle />
-          </div>
-        </div>
+      sidebar={(onNavigate) => (
+        <AppSidebar
+          activeChatId={activeChatId}
+          onSelectChat={(id) => {
+            setActiveChatId(id);
+            onNavigate();
+          }}
+        />
       )}
     >
-      <div className="flex h-full items-center justify-center text-sm text-muted-foreground">Chat</div>
+      <ChatArea chatId={activeChatId} onChatCreated={setActiveChatId} />
     </AppShell>
   );
 }
