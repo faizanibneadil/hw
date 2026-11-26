@@ -11,7 +11,7 @@ export function PromptErrors({ errors, onDismiss }: PromptErrorsProps) {
   return (
     <div
       role="alert"
-      className="mb-2 flex items-start gap-2 rounded-md border border-destructive/40 bg-destructive/5 px-3 py-2 text-sm text-destructive"
+      className="mb-2 flex items-start gap-2 rounded-md border border-destructive/40 bg-destructive/5 px-3 py-2 text-sm text-destructive-text"
     >
       <CircleAlertIcon className="mt-0.5 size-4 shrink-0" aria-hidden />
       <ul className="min-w-0 flex-1 space-y-0.5">

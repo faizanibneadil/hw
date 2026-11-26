@@ -27,7 +27,7 @@ export function FileChip({ name, size, onRemove, className }: FileChipProps) {
           type="button"
           onClick={onRemove}
           aria-label={`Remove ${name}`}
-          className="rounded-sm p-0.5 text-muted-foreground outline-none hover:bg-accent hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring"
+          className="rounded-sm p-0.5 pointer-coarse:p-1.5 text-muted-foreground outline-none hover:bg-accent hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring"
         >
           <XIcon className="size-3" />
         </button>

@@ -36,7 +36,17 @@ export function MessageList({ messages, dbById, status, children }: MessageListP
   }
 
   return (
-    <div ref={scrollRef} className="min-h-0 flex-1 overflow-y-auto" aria-live="polite">
+    <div ref={scrollRef} className="min-h-0 flex-1 overflow-y-auto">
+      {/* One concise announcement instead of reading every streamed token. */}
+      <div role="status" aria-live="polite" className="sr-only">
+        {status === "submitted"
+          ? "Checking the code…"
+          : status === "streaming"
+            ? "Writing the result…"
+            : last?.role === "assistant" && status === "ready"
+              ? "Result ready."
+              : ""}
+      </div>
       <div className="mx-auto flex max-w-3xl flex-col gap-6 px-4 py-6">
         {messages.map((message, index) => {
           const text = textOf(message);

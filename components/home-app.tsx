@@ -20,6 +20,7 @@ export function HomeApp() {
 
   return (
     <>
+      <h1 className="sr-only">hw: homework checker</h1>
       <MarkdownTheme />
       <DbProvider fallback={(state) => <DbStatus state={state} />}>
         <App />
@@ -33,8 +34,9 @@ function App() {
 
   return (
     <AppShell
-      sidebar={(onNavigate) => (
+      sidebar={(onNavigate, { inSheet }) => (
         <AppSidebar
+          showThemeToggle={!inSheet}
           activeChatId={activeChatId}
           onSelectChat={(id) => {
             setActiveChatId(id);

@@ -7,7 +7,7 @@ export function EmptyState() {
       <div className="rounded-full border p-3 text-muted-foreground">
         <GraduationCapIcon className="size-6" aria-hidden />
       </div>
-      <h1 className="text-lg font-semibold">Check a homework</h1>
+      <h2 className="text-lg font-semibold">Check a homework</h2>
       <p className="max-w-md text-sm text-muted-foreground">
         Attach the student&apos;s code files or paste the code in a code block, then write what to check and how many marks
         each item is worth.

@@ -8,7 +8,7 @@
     "lint": "eslint",
     "typecheck": "tsc --noEmit",
     "serve": "node e2e/serve.mjs",
-    "e2e": "node e2e/smoke.mjs && node e2e/persistence.mjs && node e2e/editor.mjs && node e2e/chat.mjs && node e2e/real-model.mjs",
+    "e2e": "node e2e/smoke.mjs && node e2e/persistence.mjs && node e2e/editor.mjs && node e2e/chat.mjs && node e2e/real-model.mjs && node e2e/keyboard.mjs && node e2e/a11y.mjs",
     "screens": "node e2e/screens.mjs"
   },
   "dependencies": {
@@ -44,6 +44,7 @@
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",
+    "axe-core": "4.14.1",
     "eslint": "^9",
     "eslint-config-next": "16.4.6",
     "tailwindcss": "4.3.3",

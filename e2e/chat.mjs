@@ -34,7 +34,7 @@ await page.getByText(`Downloading ${SMALL}`).waitFor({ state: "detached", timeou
 // 2. Selector: large model disabled until downloaded, download shows progress, then selectable
 step = "2";
 await page.getByRole("button", { name: /Change model/ }).click();
-const largeOption = page.getByRole("option", { name: new RegExp(LARGE) });
+const largeOption = page.getByRole("button", { name: new RegExp(`^${LARGE}`) });
 if (!(await largeOption.isDisabled())) fail("not-downloaded model should be disabled");
 await largeOption.getByText("Not downloaded").waitFor();
 await page.getByRole("button", { name: `Download ${LARGE}` }).click();
@@ -46,7 +46,7 @@ await page.getByRole("button", { name: `Model: ${LARGE}. Change model` }).waitFo
 await page.getByText(`Loading ${LARGE}`).waitFor({ state: "detached", timeout: 10000 });
 // back to the small model
 await page.getByRole("button", { name: /Change model/ }).click();
-await page.getByRole("option", { name: new RegExp(SMALL) }).click();
+await page.getByRole("button", { name: new RegExp(`^${SMALL}`) }).click();
 await page.getByRole("button", { name: `Model: ${SMALL}. Change model` }).waitFor();
 await page.getByText(`Loading ${SMALL}`).waitFor({ state: "detached", timeout: 10000 });
 
@@ -112,7 +112,7 @@ if ((await assistants.count()) !== 3) fail(`expected 3 assistant messages, got $
 if (await page.getByText(`Downloading ${SMALL}`).count()) fail("cached model downloaded again");
 await page.getByText(`Loading ${SMALL}`).waitFor({ state: "detached", timeout: 10000 });
 await page.getByRole("button", { name: /Change model/ }).click();
-if (await page.getByRole("option", { name: new RegExp(LARGE) }).isDisabled()) fail("downloaded model not detected after reload");
+if (await page.getByRole("button", { name: new RegExp(`^${LARGE}`) }).isDisabled()) fail("downloaded model not detected after reload");
 await page.keyboard.press("Escape");
 if (!(await page.getByRole("button", { name: "Attach code files" }).isDisabled())) fail("attach enabled in existing chat");
 const stored = await page.evaluate(async () => {
@@ -141,7 +141,7 @@ p2.on("pageerror", (e) => errors.push(`[7] pageerror: ${e.message}`));
 await p2.goto(`${base}?e2e=mock&webgpu=0&delay=10`);
 await p2.getByText("WebGPU is not available in this browser").waitFor();
 await p2.getByRole("button", { name: /Change model/ }).click();
-await p2.getByRole("option", { name: new RegExp(LARGE) }).getByText("Needs WebGPU").waitFor();
+await p2.getByRole("button", { name: new RegExp(`^${LARGE}`) }).getByText("Needs WebGPU").waitFor();
 if (await p2.getByRole("button", { name: `Download ${LARGE}` }).count()) fail("download offered without WebGPU");
 await p2.close();
 

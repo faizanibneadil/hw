@@ -37,7 +37,7 @@ export function ModelSelector() {
       </PopoverTrigger>
       <PopoverContent align="end" className="w-80 p-1.5">
         <p className="px-2 pt-1 pb-2 text-xs font-medium text-muted-foreground">Models run in your browser</p>
-        <ul role="listbox" aria-label="Models" className="space-y-0.5">
+        <ul aria-label="Models" className="space-y-0.5">
           {MODELS.map((model) => (
             <ModelOption
               key={model.id}

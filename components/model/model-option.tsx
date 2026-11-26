@@ -47,9 +47,7 @@ export function ModelOption({ model, status, active, onSelected }: ModelOptionPr
     <li className="flex items-center gap-1 rounded-md">
       <button
         type="button"
-        role="option"
-        aria-selected={active}
-        aria-disabled={!selectable}
+        aria-pressed={active}
         disabled={!selectable}
         onClick={() => {
           modelManager.select(model.id);
@@ -66,7 +64,7 @@ export function ModelOption({ model, status, active, onSelected }: ModelOptionPr
             <span className="truncate font-medium">{model.name}</span>
             <span className="shrink-0 text-xs text-muted-foreground">{model.sizeLabel}</span>
           </span>
-          <span className={cn("block text-xs text-muted-foreground", status?.kind === "error" && "text-destructive")}>
+          <span className={cn("block text-xs text-muted-foreground", status?.kind === "error" && "text-destructive-text")}>
             {statusText(status, active)}
           </span>
           {progress !== null && (

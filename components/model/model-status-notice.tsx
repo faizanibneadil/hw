@@ -29,7 +29,7 @@ export function ModelStatusNotice() {
     );
   } else if (status.kind === "error") {
     line = (
-      <div role="alert" className="flex items-center gap-2 text-destructive">
+      <div role="alert" className="flex items-center gap-2 text-destructive-text">
         <CircleAlertIcon className="size-4 shrink-0" aria-hidden />
         <span className="min-w-0 flex-1">
           Could not load {model.name}: {status.message}

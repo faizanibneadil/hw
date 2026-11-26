@@ -18,7 +18,7 @@ export function AssistantMessage({ text, streaming, status }: AssistantMessagePr
         <div className="flex items-center gap-2 text-xs text-muted-foreground">
           <CopyButton text={text} label="Copy result" />
           {status === "stopped" && <span>Stopped</span>}
-          {status === "error" && <span className="text-destructive">Incomplete (error)</span>}
+          {status === "error" && <span className="text-destructive-text">Incomplete (error)</span>}
         </div>
       )}
     </div>
