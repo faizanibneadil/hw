@@ -27,10 +27,10 @@ export function makeTitle(prompt: string, fileNames: string[]): string {
 
 export function createChat(
   collections: Collections,
-  input: { title: string; modelId: string; files: Omit<ChatFile, "id" | "chatId">[] },
+  input: { id?: string; title: string; modelId: string; files: Omit<ChatFile, "id" | "chatId">[] },
 ): Chat {
   const now = Date.now();
-  const chat: Chat = { id: newId(), title: input.title, createdAt: now, updatedAt: now, modelId: input.modelId };
+  const chat: Chat = { id: input.id ?? newId(), title: input.title, createdAt: now, updatedAt: now, modelId: input.modelId };
   collections.chats.insert(chat);
   if (input.files.length) {
     collections.files.insert(input.files.map((file) => ({ ...file, id: newId(), chatId: chat.id })));
@@ -68,4 +68,16 @@ export function deleteChat(collections: Collections, chatId: string) {
   if (messageIds.length) collections.messages.delete(messageIds);
   if (fileIds.length) collections.files.delete(fileIds);
   if (collections.chats.has(chatId)) collections.chats.delete(chatId);
+}
+
+/** The student's code for a chat: files from the first message + code blocks in the first message. */
+export function getChatCode(collections: Collections, chatId: string) {
+  const files = [...collections.files.state.values()]
+    .filter((f) => f.chatId === chatId)
+    .sort((a, b) => a.name.localeCompare(b.name))
+    .map(({ name, language, content }) => ({ name, language, content }));
+  const firstUser = [...collections.messages.state.values()]
+    .filter((m) => m.chatId === chatId && m.role === "user")
+    .sort((a, b) => a.createdAt - b.createdAt)[0];
+  return { files, firstMessage: firstUser?.content };
 }

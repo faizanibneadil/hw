@@ -4,13 +4,14 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
-    "build": "next build",
+    "build": "next build && node scripts/postbuild.mjs",
     "lint": "eslint",
     "typecheck": "tsc --noEmit",
     "serve": "node e2e/serve.mjs",
-    "e2e": "node e2e/smoke.mjs && node e2e/persistence.mjs && node e2e/editor.mjs"
+    "e2e": "node e2e/smoke.mjs && node e2e/persistence.mjs && node e2e/editor.mjs && node e2e/chat.mjs && node e2e/real-model.mjs"
   },
   "dependencies": {
+    "@ai-sdk/provider": "3.0.19",
     "@ai-sdk/react": "3.0.341",
     "@browser-ai/transformers-js": "2.2.4",
     "@huggingface/transformers": "4.3.2",

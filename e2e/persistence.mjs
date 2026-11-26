@@ -1,8 +1,6 @@
 // Persistence test: seeds IndexedDB, then checks the live sidebar, rename, delete (cascade) and reload.
-import { createRequire } from "node:module";
-
-const { chromium } = createRequire(import.meta.url)("playwright");
-const url = process.env.URL ?? "http://localhost:4173/";
+import { chromium, MOCK_URL } from "./helpers.mjs";
+const url = MOCK_URL;
 const browser = await chromium.launch();
 const page = await browser.newPage({ viewport: { width: 1280, height: 800 } });
 const errors = [];

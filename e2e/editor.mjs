@@ -1,8 +1,6 @@
 // Editor + attachments test: validation errors, code blocks, Enter/Shift+Enter, Markdown output, locking.
-import { createRequire } from "node:module";
-
-const { chromium } = createRequire(import.meta.url)("playwright");
-const url = process.env.URL ?? "http://localhost:4173/";
+import { chromium, MOCK_URL, waitForModelReady } from "./helpers.mjs";
+const url = MOCK_URL;
 const browser = await chromium.launch();
 const page = await browser.newPage({ viewport: { width: 1280, height: 900 } });
 const errors = [];
@@ -19,6 +17,7 @@ const expectAlert = (fragment) =>
 await page.goto(url, { waitUntil: "networkidle" });
 const editor = page.getByRole("textbox", { name: "Prompt" });
 await editor.waitFor();
+await waitForModelReady(page);
 
 // 1. First message without code -> inline error
 step = "1";
@@ -84,8 +83,9 @@ if (!(await page.getByRole("button", { name: "Attach code files" }).isDisabled()
 await page.getByRole("button", { name: "Attach code files" }).locator("..").hover();
 await page.getByRole("tooltip").getByText("Files can only be added at the start of a chat.").waitFor();
 
-// 5. Follow-up message is allowed without code
+// 5. Follow-up message is allowed without code (after the answer finished streaming)
 step = "5";
+await page.getByRole("button", { name: "Send" }).waitFor({ timeout: 15000 });
 await editor.click();
 await page.keyboard.type("Item 2 is done in main.py line 1");
 await page.keyboard.press("Enter");
@@ -94,8 +94,22 @@ if (!page.url().includes("#")) fail("chat id not in url");
 
 // 6. Reload: messages and files persisted
 step = "6";
+// IndexedDB writes are asynchronous (a few ms): wait until both user messages are stored.
+await page.waitForFunction(async () => {
+  const db = await new Promise((res) => {
+    const r = indexedDB.open("hw");
+    r.onsuccess = () => res(r.result);
+  });
+  const all = await new Promise((res) => {
+    const r = db.transaction("messages").objectStore("messages").getAll();
+    r.onsuccess = () => res(r.result);
+  });
+  db.close();
+  return all.filter((m) => m.role === "user").length === 2;
+});
 await page.reload({ waitUntil: "networkidle" });
 await page.locator("[data-role=user]").nth(1).waitFor();
+await waitForModelReady(page);
 const stored = await page.evaluate(async () => {
   const db = await new Promise((res) => {
     const r = indexedDB.open("hw");

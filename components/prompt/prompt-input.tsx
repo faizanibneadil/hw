@@ -55,10 +55,6 @@ export function PromptInput({ isFirstMessage, busy, sendBlockedReason, onSubmit,
 
   const submit = useCallback(() => {
     if (!editor || busy) return;
-    if (sendBlockedReason) {
-      setErrors([sendBlockedReason]);
-      return;
-    }
     const markdown = getEditorMarkdown(editor);
     if (isFirstMessage) {
       if (!attachedFiles.length && !extractCodeBlocks(markdown).length) {
@@ -66,6 +62,10 @@ export function PromptInput({ isFirstMessage, busy, sendBlockedReason, onSubmit,
         return;
       }
     } else if (!markdown) {
+      return;
+    }
+    if (sendBlockedReason) {
+      setErrors([sendBlockedReason]);
       return;
     }
     onSubmit({ markdown, files: attachedFiles });

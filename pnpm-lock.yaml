@@ -8,6 +8,9 @@ importers:
 
   .:
     dependencies:
+      '@ai-sdk/provider':
+        specifier: 3.0.19
+        version: 3.0.19
       '@ai-sdk/react':
         specifier: 3.0.341
         version: 3.0.341(react@19.3.0)(zod@4.6.7)

@@ -1,10 +1,7 @@
 // Smoke test: loads the static build on desktop + mobile and fails on console errors.
-import { createRequire } from "node:module";
+import { chromium, devices, MOCK_URL } from "./helpers.mjs";
 
-// Playwright is preinstalled globally (resolved through NODE_PATH via require).
-const { chromium, devices } = createRequire(import.meta.url)("playwright");
-
-const url = process.env.URL ?? "http://localhost:4173/";
+const url = MOCK_URL;
 const shots = process.env.SHOTS ?? "/tmp";
 const browser = await chromium.launch();
 const errors = [];
