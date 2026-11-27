@@ -1,7 +1,7 @@
 // Accessibility scan (axe-core, WCAG 2.1 A/AA) of the main states in light and dark mode.
 import { readFile } from "node:fs/promises";
 import { createRequire } from "node:module";
-import { chromium, MOCK_URL, waitForModelReady } from "./helpers.mjs";
+import { chromium, CLOUD_URL, MOCK_URL, mockChatApi, mockTurnstile, waitForModelReady } from "./helpers.mjs";
 
 const axeSource = await readFile(createRequire(import.meta.url).resolve("axe-core/axe.min.js"), "utf8");
 const browser = await chromium.launch();
@@ -52,6 +52,28 @@ for (const scheme of ["light", "dark"]) {
     await page.close();
   }
 }
+// Cloud mode: model menu with the Offline toggle and privacy note, quota error, offline dialog.
+for (const scheme of ["light", "dark"]) {
+  const page = await browser.newPage({ viewport: { width: 1280, height: 800 }, colorScheme: scheme });
+  await mockTurnstile(page);
+  await mockChatApi(page, () => ({ status: 429, json: { code: "QUOTA_EXCEEDED", message: "used up" } }));
+  await page.goto(CLOUD_URL);
+  await page.getByTestId("file-input").setInputFiles([{ name: "main.py", mimeType: "text/plain", buffer: Buffer.from("print(1)\n") }]);
+  await page.getByRole("textbox", { name: "Prompt" }).click();
+  await page.keyboard.type("Check it");
+  await page.keyboard.press("Enter");
+  await page.getByRole("button", { name: "Switch to Offline mode" }).waitFor();
+  await scan(page, `${scheme} cloud quota error`);
+  await page.getByRole("button", { name: /Change model/ }).click();
+  await page.getByRole("switch", { name: "Offline / Private mode" }).waitFor();
+  await scan(page, `${scheme} cloud model popover`);
+  await page.keyboard.press("Escape");
+  await page.getByRole("button", { name: "Switch to Offline mode" }).click();
+  await page.getByRole("alertdialog").waitFor();
+  await scan(page, `${scheme} offline dialog`);
+  await page.close();
+}
+
 await browser.close();
 if (problems.length) {
   console.error(problems.join("\n"));
