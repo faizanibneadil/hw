@@ -37,8 +37,8 @@ const FRIENDLY: Record<ChatErrorCode, (serverMessage: string) => string> = {
   QUOTA_EXCEEDED: () =>
     `Today's free cloud grading is used up. It resets at ${quotaResetText()}. You can switch to Offline mode to keep grading now.`,
   RATE_LIMITED: () => "Too many requests in a short time. Wait a minute, then press Retry.",
-  VERIFICATION_FAILED: () =>
-    "We could not confirm this browser is not a bot. Press Retry; if it keeps failing, reload the page.",
+  VERIFICATION_FAILED: (message) =>
+    `We could not confirm this browser is not a bot. Press Retry; if it keeps failing, reload the page. Details: ${message}`,
   BAD_REQUEST: (message) => `The request was not accepted: ${message}`,
   UPSTREAM_ERROR: () => "The cloud model did not answer. Press Retry, or pick another model.",
 };

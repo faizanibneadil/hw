@@ -118,6 +118,11 @@ describe("POST /api/chat", () => {
     expect(invalid.status).toBe(403);
     expect(await errorCode(invalid)).toBe("VERIFICATION_FAILED");
     expect(verifyTurnstile).toHaveBeenCalledWith("bad-token", "test-secret", expect.any(String));
+
+    // A build without NEXT_PUBLIC_TURNSTILE_SITE_KEY sends the test key's dummy token.
+    const testKey = await worker.fetch(post(chatBody({ turnstileToken: "XXXX.DUMMY.TOKEN.XXXX" })), env);
+    expect(testKey.status).toBe(403);
+    expect(((await testKey.json()) as { message: string }).message).toContain("NEXT_PUBLIC_TURNSTILE_SITE_KEY");
     expect(model.doStreamCalls).toHaveLength(0);
   });
 

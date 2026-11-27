@@ -40,6 +40,9 @@ interface ChatBody extends Partial<ChatRequestExtras> {
   messages?: unknown;
 }
 
+/** The token Turnstile's test site keys produce (a real secret always rejects it). */
+const TEST_SITE_KEY_TOKEN = "XXXX.DUMMY.TOKEN.XXXX";
+
 class BodyTooLargeError extends Error {}
 
 /** Reads at most `limit` bytes of the body (Content-Length can be missing or wrong). */
@@ -151,14 +154,30 @@ export async function handleChat(request: Request, env: ChatEnv, deps: ChatDeps)
 
   // 3. Turnstile: a valid signed cookie, or a token that passes Siteverify.
   const secret = env.TURNSTILE_SECRET_KEY;
-  if (!secret) return errorResponse("VERIFICATION_FAILED", "Verification is not configured on the server.");
+  if (!secret) {
+    console.error("Turnstile: the TURNSTILE_SECRET_KEY secret is not set on this Worker");
+    return errorResponse("VERIFICATION_FAILED", "The server has no TURNSTILE_SECRET_KEY secret. Set it with `wrangler secret put TURNSTILE_SECRET_KEY`.");
+  }
   const now = deps.now();
   const headers = new Headers();
   let until = await verifiedUntil(request, secret, now);
   if (until === null) {
-    if (!body.turnstileToken) return errorResponse("VERIFICATION_FAILED", "Verification is required.");
+    if (!body.turnstileToken) {
+      return errorResponse("VERIFICATION_FAILED", "The browser sent no Turnstile token (the widget did not load or did not finish).");
+    }
+    if (body.turnstileToken === TEST_SITE_KEY_TOKEN && !secret.startsWith("1x0000")) {
+      console.error("Turnstile: the site was built with the test site key; set NEXT_PUBLIC_TURNSTILE_SITE_KEY at build time");
+      return errorResponse(
+        "VERIFICATION_FAILED",
+        "This build uses Turnstile's test site key. Set NEXT_PUBLIC_TURNSTILE_SITE_KEY as a build variable and deploy again.",
+      );
+    }
     const result = await deps.verifyTurnstile(body.turnstileToken, secret, ip);
-    if (!result.success) return errorResponse("VERIFICATION_FAILED", "Verification failed.");
+    if (!result.success) {
+      const codes = result["error-codes"]?.join(", ") || "unknown";
+      console.error("Turnstile: Siteverify rejected the token", { codes, hostname: result.hostname });
+      return errorResponse("VERIFICATION_FAILED", `Turnstile rejected the token (${codes}).`);
+    }
     const cookie = await createVerifiedCookie(secret, now, new URL(request.url).protocol === "https:");
     headers.append("set-cookie", cookie.header);
     until = cookie.expires;
