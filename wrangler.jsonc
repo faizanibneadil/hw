@@ -1,0 +1,32 @@
+{
+  "$schema": "./node_modules/wrangler/config-schema.json",
+  "name": "hw",
+  "main": "./worker/index.ts",
+  "compatibility_date": "2026-11-27",
+  "observability": { "enabled": true },
+  "upload_source_maps": true,
+  "assets": {
+    // The static export from `next build` (`pnpm build`).
+    "directory": "./out",
+    "binding": "ASSETS",
+    // Same as Cloudflare Pages with a top-level 404.html: unknown paths get out/404.html (404).
+    "not_found_handling": "404-page",
+    // Only the API runs the Worker first; every other request is served from the static assets.
+    "run_worker_first": ["/api/*"]
+  },
+  // Workers AI (https://developers.cloudflare.com/workers-ai/configuration/ai-sdk/).
+  // Workers AI always runs remotely, also in `wrangler dev` (it counts against the daily free Neurons).
+  "ai": { "binding": "AI", "remote": true },
+  "ratelimits": [
+    {
+      // POST /api/chat, keyed by CF-Connecting-IP. Approximate and per Cloudflare location.
+      "name": "CHAT_RATE_LIMITER",
+      // Any integer that is unique within your Cloudflare account.
+      "namespace_id": "1001",
+      // `period` must be 10 or 60 seconds.
+      "simple": { "limit": 20, "period": 60 }
+    }
+  ]
+  // Secret (not in this file): TURNSTILE_SECRET_KEY, set with `wrangler secret put TURNSTILE_SECRET_KEY`.
+  // Local dev reads it from .dev.vars (see .dev.vars.example).
+}

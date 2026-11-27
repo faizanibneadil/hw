@@ -1,0 +1,15 @@
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "lib": ["ES2023"],
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "types": ["@cloudflare/vitest-plugin/types"],
+    "strict": true,
+    "noEmit": true,
+    "skipLibCheck": true,
+    "isolatedModules": true,
+    "resolveJsonModule": true
+  },
+  "include": ["./**/*.ts", "../lib/ai/api.ts", "../lib/ai/context.ts", "../lib/ai/models.ts", "../lib/ai/system-prompt.ts", "../lib/editor/code-blocks.ts"]
+}

@@ -1,7 +1,6 @@
-import type { LanguageModelV3 } from "@ai-sdk/provider";
-import { transformersJS } from "@browser-ai/transformers-js";
+import type { LanguageModelV4 } from "@ai-sdk/provider";
 
-import { DEFAULT_MODEL_ID, MODELS, getModelConfig, type ModelConfig } from "@/lib/ai/models";
+import { DEFAULT_LOCAL_MODEL_ID, LOCAL_MODELS, getLocalModel, type LocalModelConfig } from "@/lib/ai/models";
 import { detectWebGPU } from "@/lib/ai/webgpu";
 import { checkModelsCached } from "@/lib/ai/model-cache";
 import { createMockModel, isMockMode } from "@/lib/ai/mock-model";
@@ -28,7 +27,7 @@ export interface ModelManagerState {
 }
 
 interface Instance {
-  model: LanguageModelV3;
+  model: LanguageModelV4;
   worker?: Worker;
 }
 
@@ -43,12 +42,36 @@ function errorMessage(error: unknown): string {
 }
 
 const MOCK_CACHE_KEY = "hw-e2e-mock-cache";
+const LOCAL_MODEL_KEY = "hw-local-model";
+
+function readLocalModelChoice(): string {
+  try {
+    const id = window.localStorage.getItem(LOCAL_MODEL_KEY);
+    return id && getLocalModel(id) ? id : DEFAULT_LOCAL_MODEL_ID;
+  } catch {
+    return DEFAULT_LOCAL_MODEL_ID;
+  }
+}
+
+function writeLocalModelChoice(id: string) {
+  try {
+    window.localStorage.setItem(LOCAL_MODEL_KEY, id);
+  } catch {
+    // Storage blocked: the choice only lasts for this page load.
+  }
+}
+
+/**
+ * In-browser models for Offline / Private mode. Nothing happens (no download, no worker, no
+ * transformers.js code loaded) until `init()` is called, which only happens when the teacher
+ * turns Offline mode on.
+ */
 
 class ModelManager {
   private state: ModelManagerState = {
     webgpu: null,
-    activeId: DEFAULT_MODEL_ID,
-    models: Object.fromEntries(MODELS.map((m) => [m.id, { kind: "checking" } satisfies ModelStatus])),
+    activeId: DEFAULT_LOCAL_MODEL_ID,
+    models: Object.fromEntries(LOCAL_MODELS.map((m) => [m.id, { kind: "checking" } satisfies ModelStatus])),
   };
   private listeners = new Set<() => void>();
   private instances = new Map<string, Instance>();
@@ -58,7 +81,9 @@ class ModelManager {
 
   subscribe = (listener: () => void) => {
     this.listeners.add(listener);
-    return () => this.listeners.delete(listener);
+    return () => {
+      this.listeners.delete(listener);
+    };
   };
 
   getState = () => this.state;
@@ -76,7 +101,14 @@ class ModelManager {
     return this.state.models[id];
   }
 
-  /** Detects WebGPU, checks which models are cached and auto-loads the default (smallest) model. */
+  get isInitialized() {
+    return this.initialized;
+  }
+
+  /**
+   * Detects WebGPU, checks which models are cached and loads the last used model if it is cached,
+   * otherwise the default (smallest) one.
+   */
   async init() {
     if (this.initialized || typeof window === "undefined") return;
     this.initialized = true;
@@ -85,8 +117,8 @@ class ModelManager {
     const webgpu = this.mock ? new URLSearchParams(window.location.search).get("webgpu") !== "0" : await detectWebGPU();
     this.set({ webgpu });
 
-    const supported = MODELS.filter((m) => webgpu || !m.requiresWebGPU);
-    for (const model of MODELS) {
+    const supported = LOCAL_MODELS.filter((m) => webgpu || !m.requiresWebGPU);
+    for (const model of LOCAL_MODELS) {
       if (!supported.includes(model)) {
         this.setStatus(model.id, { kind: "unsupported", reason: "Needs WebGPU, which this browser does not provide." });
       }
@@ -103,11 +135,12 @@ class ModelManager {
     }
     supported.forEach((model, i) => this.setStatus(model.id, { kind: cached[i] ? "downloaded" : "not-downloaded" }));
 
-    void this.activate(DEFAULT_MODEL_ID);
+    const preferred = readLocalModelChoice();
+    void this.activate(isSelectable(this.status(preferred)) ? preferred : DEFAULT_LOCAL_MODEL_ID);
   }
 
   /** The model used for generation, or null when the active model is not ready. */
-  getActiveModel(): LanguageModelV3 | null {
+  getActiveModel(): LanguageModelV4 | null {
     if (this.status(this.state.activeId)?.kind !== "ready") return null;
     return this.instances.get(this.state.activeId)?.model ?? null;
   }
@@ -133,6 +166,7 @@ class ModelManager {
   private async activate(id: string) {
     const previous = this.state.activeId;
     this.set({ activeId: id });
+    writeLocalModelChoice(id);
     if (previous !== id) this.unload(previous);
     const status = this.status(id);
     if (status?.kind === "ready" || status?.kind === "unsupported") return;
@@ -151,7 +185,7 @@ class ModelManager {
   private loadInstance(id: string): Promise<void> {
     const existing = this.pending.get(id);
     if (existing) return existing;
-    const config = getModelConfig(id);
+    const config = getLocalModel(id);
     if (!config) return Promise.resolve();
 
     const wasDownloaded = this.status(id)?.kind === "downloaded" || (this.status(id)?.kind === "error" && this.wasDownloaded(id));
@@ -188,7 +222,9 @@ class ModelManager {
     return status?.kind === "error" && status.wasDownloaded;
   }
 
-  private async createInstance(config: ModelConfig, onProgress: (p: number) => void): Promise<Instance> {
+  private async createInstance(config: LocalModelConfig, onProgress: (p: number) => void): Promise<Instance> {
+    // Loaded on demand so cloud-mode users never download the transformers.js code.
+    const { transformersJS } = await import("@browser-ai/transformers-js");
     const worker = new Worker(new URL("../../workers/llm.worker.ts", import.meta.url), { type: "module" });
     try {
       const model = transformersJS(config.id, {

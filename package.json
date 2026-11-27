@@ -6,15 +6,19 @@
     "dev": "next dev",
     "build": "next build && node scripts/postbuild.mjs",
     "lint": "eslint",
-    "typecheck": "tsc --noEmit",
+    "typecheck": "next typegen && tsc --noEmit && tsc -p worker",
+    "test:worker": "vitest run",
+    "dev:worker": "wrangler dev",
+    "deploy": "pnpm build && wrangler deploy",
+    "cf-typegen": "wrangler types worker/worker-configuration.d.ts",
     "serve": "node e2e/serve.mjs",
-    "e2e": "node e2e/smoke.mjs && node e2e/persistence.mjs && node e2e/editor.mjs && node e2e/chat.mjs && node e2e/real-model.mjs && node e2e/keyboard.mjs && node e2e/a11y.mjs && node e2e/regressions.mjs && node e2e/ort-extern-wasm.mjs",
+    "e2e": "node e2e/smoke.mjs && node e2e/cloud.mjs && node e2e/persistence.mjs && node e2e/editor.mjs && node e2e/chat.mjs && node e2e/real-model.mjs && node e2e/keyboard.mjs && node e2e/a11y.mjs && node e2e/regressions.mjs && node e2e/ort-extern-wasm.mjs",
     "screens": "node e2e/screens.mjs"
   },
   "dependencies": {
-    "@ai-sdk/provider": "3.0.19",
-    "@ai-sdk/react": "3.0.341",
-    "@browser-ai/transformers-js": "2.2.4",
+    "@ai-sdk/provider": "4.0.39",
+    "@ai-sdk/react": "4.0.188",
+    "@browser-ai/transformers-js": "3.0.5",
     "@huggingface/transformers": "4.3.2",
     "@tanstack/db": "1.0.0-rc.1.5",
     "@tanstack/highlight": "1.2.12",
@@ -26,7 +30,8 @@
     "@tiptap/pm": "3.35.0",
     "@tiptap/react": "3.35.0",
     "@tiptap/starter-kit": "3.35.0",
-    "ai": "6.0.338",
+    "agents": "0.34.1",
+    "ai": "7.0.183",
     "class-variance-authority": "0.7.1",
     "clsx": "2.1.1",
     "lowlight": "3.3.0",
@@ -37,9 +42,11 @@
     "react": "19.3.0",
     "react-dom": "19.3.0",
     "react-resizable-panels": "4.24.3",
-    "tailwind-merge": "3.7.1"
+    "tailwind-merge": "3.7.1",
+    "zod": "4.6.7"
   },
   "devDependencies": {
+    "@cloudflare/vitest-plugin": "1.10.0",
     "@tailwindcss/turbopack": "4.3.3",
     "@types/node": "^20",
     "@types/react": "^19",
@@ -49,7 +56,9 @@
     "eslint-config-next": "16.4.6",
     "tailwindcss": "4.3.3",
     "tw-animate-css": "1.4.0",
-    "typescript": "^5"
+    "typescript": "^5",
+    "vitest": "5.1.2",
+    "wrangler": "4.169.0"
   },
   "packageManager": "pnpm@10.29.1"
 }

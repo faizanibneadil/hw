@@ -1,19 +1,19 @@
-import type { LanguageModelV3, LanguageModelV3CallOptions, LanguageModelV3StreamPart } from "@ai-sdk/provider";
+import type { LanguageModelV4, LanguageModelV4CallOptions, LanguageModelV4StreamPart } from "@ai-sdk/provider";
 
 /**
  * TEST ONLY (enabled with `?e2e=mock`): a fake streaming model so the full chat flow can be
  * verified in CI without downloading a real model. It reports what context it received.
  */
-export function createMockModel(modelId: string): LanguageModelV3 {
+export function createMockModel(modelId: string): LanguageModelV4 {
   return {
-    specificationVersion: "v3",
+    specificationVersion: "v4",
     provider: "mock",
     modelId,
     supportedUrls: {},
     doGenerate: async () => {
       throw new Error("not supported");
     },
-    doStream: async (options: LanguageModelV3CallOptions) => {
+    doStream: async (options: LanguageModelV4CallOptions) => {
       const prompt = options.prompt;
       const systems = prompt.filter((m) => m.role === "system").map((m) => m.content);
       const users = prompt.filter((m) => m.role === "user");
@@ -45,7 +45,7 @@ export function createMockModel(modelId: string): LanguageModelV3 {
       const words = text.split(/(?<=\s)/);
       const wordDelay = Number(new URLSearchParams(window.location.search).get("wordDelay") ?? 25);
       const signal = options.abortSignal;
-      const stream = new ReadableStream<LanguageModelV3StreamPart>({
+      const stream = new ReadableStream<LanguageModelV4StreamPart>({
         async start(controller) {
           controller.enqueue({ type: "stream-start", warnings: [] });
           controller.enqueue({ type: "text-start", id: "t" });

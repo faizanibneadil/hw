@@ -20,7 +20,7 @@ const assistants = page.locator("[data-role=assistant]");
 
 // 1. Auto-download of the smallest model with visible progress
 step = "1";
-await page.goto(`${base}?e2e=mock&delay=120`);
+await page.goto(`${base}?e2e=mock&mode=local&delay=120`);
 await page.getByText(`Downloading ${SMALL}`).waitFor();
 await page.getByRole("progressbar", { name: "Model progress" }).waitFor();
 // sending is blocked while loading
@@ -28,7 +28,7 @@ await editor.click();
 await page.keyboard.type("```py ");
 await page.keyboard.type("print(1)");
 await page.getByRole("button", { name: "Send" }).click();
-await page.getByText("The model is still loading").waitFor();
+await page.getByText("The offline model is still loading").waitFor();
 await page.getByText(`Downloading ${SMALL}`).waitFor({ state: "detached", timeout: 10000 });
 
 // 2. Selector: large model disabled until downloaded, download shows progress, then selectable
@@ -138,7 +138,7 @@ if (!stored.chats[0]?.includes("0.5B")) fail(`chat modelId: ${stored.chats}`);
 step = "7";
 const p2 = await context.newPage();
 p2.on("pageerror", (e) => errors.push(`[7] pageerror: ${e.message}`));
-await p2.goto(`${base}?e2e=mock&webgpu=0&delay=10`);
+await p2.goto(`${base}?e2e=mock&mode=local&webgpu=0&delay=10`);
 await p2.getByText("WebGPU is not available in this browser").waitFor();
 await p2.getByRole("button", { name: /Change model/ }).click();
 await p2.getByRole("button", { name: new RegExp(`^${LARGE}`) }).getByText("Needs WebGPU").waitFor();
@@ -149,7 +149,7 @@ await p2.close();
 step = "8";
 const p3 = await browser.newPage();
 p3.on("pageerror", (e) => errors.push(`[8] pageerror: ${e.message}`));
-await p3.goto(`${base}?e2e=mock&fail=onnx-community/Qwen2.5-Coder-0.5B-Instruct`);
+await p3.goto(`${base}?e2e=mock&mode=local&fail=onnx-community/Qwen2.5-Coder-0.5B-Instruct`);
 await p3.getByText(`Could not load ${SMALL}: Mock download failed`).waitFor();
 await p3.getByRole("button", { name: "Retry" }).first().waitFor();
 await p3.close();

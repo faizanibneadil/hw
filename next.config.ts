@@ -7,7 +7,7 @@ const emptyModule = "./lib/empty-module.ts";
 /**
  * ONNX Runtime build without a bundled .wasm (its `onnxruntime-web-use-extern-wasm` export).
  * The default `onnxruntime-web/webgpu` build makes the bundler copy a 25.6 MiB .wasm into `out/`,
- * which exceeds Cloudflare Pages' 25 MiB file limit. Transformers.js loads the wasm from the
+ * which exceeds the 25 MiB per-file limit for Cloudflare Workers static assets. Transformers.js loads the wasm from the
  * jsDelivr CDN at runtime (`env.backends.onnx.wasm.wasmPaths`), so the external build is all we need.
  */
 const requireFromTransformers = createRequire(createRequire(import.meta.url).resolve("@huggingface/transformers"));
@@ -18,7 +18,7 @@ const ortWebgpuExternWasm = join(
 const ortWebgpuExternWasmRelative = `./${relative(process.cwd(), ortWebgpuExternWasm).split("\\").join("/")}`;
 
 const nextConfig: NextConfig = {
-  // Fully static site for Cloudflare Pages: no server, no API routes.
+  // Static export (`out/`), served as Cloudflare Workers static assets; `/api/*` is the Worker in worker/.
   output: "export",
   images: { unoptimized: true },
   experimental: {

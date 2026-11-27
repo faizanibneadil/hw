@@ -8,8 +8,11 @@ import { addMessage, createChat, getChatCode, makeTitle, newId, touchChat } from
 import { useCollections } from "@/lib/db/db-context";
 import { createChatTransport, type ChatUIMessage } from "@/lib/ai/chat-transport";
 import { lockedCodeFromFirstMessage } from "@/lib/ai/context";
+import { enableOfflineMode } from "@/lib/ai/offline-mode";
+import { inferenceSettings } from "@/lib/ai/inference-settings";
 import { modelManager } from "@/lib/ai/model-manager";
 import { useModelManager } from "@/hooks/use-model-manager";
+import { useInferenceSettings } from "@/hooks/use-inference-settings";
 import { MessageList } from "@/components/chat/message-list";
 import { ChatError } from "@/components/chat/chat-error";
 import { ModelSelector } from "@/components/model/model-selector";
@@ -31,10 +34,15 @@ function textOf(message: ChatUIMessage): string {
   return message.parts.map((part) => (part.type === "text" ? part.text : "")).join("");
 }
 
-/** One open chat: `useChat` with the in-browser transport, persisted to IndexedDB. */
+/** One open chat: `useChat` with the cloud or offline transport, persisted to IndexedDB. */
 export function ChatSession({ chatId, persisted, dbMessages, onChatCreated }: ChatSessionProps) {
   const collections = useCollections();
-  const { activeId, models } = useModelManager();
+  const { mode, cloudModelId } = useInferenceSettings();
+  const { activeId: localModelId, models } = useModelManager();
+  const offline = mode === "local";
+  const activeId = offline ? localModelId : cloudModelId;
+  /** "Switch to Offline mode" was confirmed: resend once the offline model is ready. */
+  const [retryWhenOfflineReady, setRetryWhenOfflineReady] = useState(false);
 
   // Initial messages come from IndexedDB once, when the chat opens.
   const [initialMessages] = useState(() =>
@@ -76,7 +84,18 @@ export function ChatSession({ chatId, persisted, dbMessages, onChatCreated }: Ch
 
   const dbById = useMemo(() => new Map(dbMessages.map((m) => [m.id, m])), [dbMessages]);
   const busy = status === "submitted" || status === "streaming";
-  const modelReady = models[activeId]?.kind === "ready";
+  const modelReady = !offline || models[localModelId]?.kind === "ready";
+
+  // After "Switch to Offline mode": resend the failed message as soon as the offline model is ready.
+  useEffect(() => {
+    if (!retryWhenOfflineReady) return;
+    return modelManager.subscribe(() => {
+      if (!modelManager.getActiveModel() || inferenceSettings.getState().mode !== "local") return;
+      setRetryWhenOfflineReady(false);
+      clearError();
+      void regenerate();
+    });
+  }, [retryWhenOfflineReady, clearError, regenerate]);
 
   const handleSubmit = useCallback(
     ({ markdown, files }: PromptSubmission) => {
@@ -99,6 +118,7 @@ export function ChatSession({ chatId, persisted, dbMessages, onChatCreated }: Ch
         fileNames: files.length ? files.map((f) => f.name) : undefined,
       });
       touchChat(collections, chatId, { modelId: activeId });
+      setRetryWhenOfflineReady(false);
       clearError();
       void sendMessage({ id, role: "user", parts: [{ type: "text", text: markdown }] });
     },
@@ -110,10 +130,26 @@ export function ChatSession({ chatId, persisted, dbMessages, onChatCreated }: Ch
       <MessageList messages={messages} dbById={dbById} status={status}>
         {error && !busy && (
           <ChatError
-            message={error.message}
+            error={error}
+            waitingForOffline={retryWhenOfflineReady}
+            onSwitchToOffline={
+              offline
+                ? undefined
+                : () => {
+                    enableOfflineMode();
+                    if (modelManager.getActiveModel()) {
+                      clearError();
+                      void regenerate();
+                    } else {
+                      setRetryWhenOfflineReady(true);
+                    }
+                  }
+            }
             onRetry={() => {
+              setRetryWhenOfflineReady(false);
+              if (!modelReady) return;
               clearError();
-              if (modelManager.getActiveModel()) void regenerate();
+              void regenerate();
             }}
           />
         )}
@@ -122,7 +158,7 @@ export function ChatSession({ chatId, persisted, dbMessages, onChatCreated }: Ch
       <PromptInput
         isFirstMessage={messages.length === 0}
         busy={busy}
-        sendBlockedReason={modelReady ? undefined : "The model is still loading. You can send once it is ready."}
+        sendBlockedReason={modelReady ? undefined : "The offline model is still loading. You can send once it is ready."}
         onSubmit={handleSubmit}
         onStop={() => void stop()}
         modelSelector={<ModelSelector locked={busy} />}

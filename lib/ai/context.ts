@@ -1,6 +1,9 @@
+// Shared by the Next.js app and the Worker: no browser-only dependencies, relative imports only.
 import type { ModelMessage } from "ai";
 
-import { extractCodeBlocks, replaceCodeBlocks } from "@/lib/editor/code-blocks";
+import { extractCodeBlocks, replaceCodeBlocks } from "../editor/code-blocks";
+import { MAX_OUTPUT_TOKENS } from "./models";
+import { SYSTEM_PROMPT } from "./system-prompt";
 
 export interface LockedFile {
   name: string;
@@ -82,4 +85,13 @@ export function referenceFirstMessageCode(messages: ModelMessage[]): ModelMessag
       ? toText(first.content)
       : first.content.map((part) => (part.type === "text" ? { ...part, text: toText(part.text) } : part));
   return [{ ...first, content } as ModelMessage, ...messages.slice(1)];
+}
+
+/**
+ * The history sent to the model: first-message code blocks replaced by references, then trimmed so
+ * system prompt + student code + history + answer fit the model's context window.
+ */
+export function prepareHistory(messages: ModelMessage[], codeMessage: string, contextTokens: number): ModelMessage[] {
+  const budget = contextTokens - MAX_OUTPUT_TOKENS - estimateTokens(SYSTEM_PROMPT) - estimateTokens(codeMessage);
+  return trimHistory(referenceFirstMessageCode(messages), Math.max(budget, 0));
 }

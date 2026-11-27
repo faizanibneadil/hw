@@ -15,6 +15,9 @@ const fail = (msg) => {
   throw new Error(msg);
 };
 
+// Offline / Private mode (the cloud mode default never downloads a model).
+await page.addInitScript(() => localStorage.setItem("hw-inference-settings", JSON.stringify({ mode: "local" })));
+
 let hubRequests = 0;
 await page.route(/^https:\/\/(huggingface\.co|cdn\.jsdelivr\.net)\//, (route) => {
   hubRequests++;

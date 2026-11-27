@@ -1,57 +1,26 @@
-import type { LanguageModelV3 } from "@ai-sdk/provider";
-import { DirectChatTransport, ToolLoopAgent, stepCountIs, type InferAgentUIMessage } from "ai";
+import type { ChatTransport, UIMessage } from "ai";
 
-import { MAX_OUTPUT_TOKENS, getModelConfig } from "@/lib/ai/models";
-import { SYSTEM_PROMPT } from "@/lib/ai/system-prompt";
-import { estimateTokens, formatLockedCode, referenceFirstMessageCode, trimHistory, type LockedCode } from "@/lib/ai/context";
-import { modelManager } from "@/lib/ai/model-manager";
+import type { LockedCode } from "@/lib/ai/context";
+import { inferenceSettings } from "@/lib/ai/inference-settings";
+import { createCloudTransport } from "@/lib/ai/cloud-transport";
+import { createLocalTransport } from "@/lib/ai/local-transport";
 
-/**
- * Stable model handle for the agent that forwards to whichever model is active in the
- * model manager, so switching models does not require a new transport.
- */
-const activeModel: LanguageModelV3 = {
-  specificationVersion: "v3",
-  provider: "hw",
-  modelId: "active",
-  supportedUrls: {},
-  doGenerate: (options) => requireActiveModel().doGenerate(options),
-  doStream: (options) => requireActiveModel().doStream(options),
-};
-
-function requireActiveModel(): LanguageModelV3 {
-  const model = modelManager.getActiveModel();
-  if (!model) throw new Error("The model is not ready yet. Wait until it has finished loading and try again.");
-  return model;
-}
+/** UI message type of the chat (text parts only; no tools). */
+export type ChatUIMessage = UIMessage;
 
 /**
- * In-browser chat transport: `DirectChatTransport` runs the agent in-process (no HTTP).
- * Every request gets: the fixed system prompt, the chat's locked student code, and the
- * (trimmed) conversation history.
+ * One transport per chat that picks cloud (Workers AI) or local (Offline mode) per request, so
+ * switching modes or models never replaces `useChat`'s chat or loses its messages.
  */
-export function createChatTransport(getLockedCode: () => LockedCode) {
-  const agent = new ToolLoopAgent({
-    model: activeModel,
-    instructions: SYSTEM_PROMPT,
-    maxOutputTokens: MAX_OUTPUT_TOKENS,
-    temperature: 0.2,
-    stopWhen: stepCountIs(1),
-    prepareStep: ({ messages }) => {
-      const codeMessage = formatLockedCode(getLockedCode());
-      const contextTokens = getModelConfig(modelManager.getState().activeId)?.contextTokens ?? 8192;
-      const budget = contextTokens - MAX_OUTPUT_TOKENS - estimateTokens(SYSTEM_PROMPT) - estimateTokens(codeMessage);
-      return {
-        system: [
-          { role: "system", content: SYSTEM_PROMPT },
-          { role: "system", content: codeMessage },
-        ],
-        messages: trimHistory(referenceFirstMessageCode(messages), Math.max(budget, 0)),
-      };
-    },
-  });
-  return new DirectChatTransport({ agent });
+export function createChatTransport(getLockedCode: () => LockedCode): ChatTransport<ChatUIMessage> {
+  let cloud: ChatTransport<ChatUIMessage> | null = null;
+  let local: ChatTransport<ChatUIMessage> | null = null;
+  const current = () =>
+    inferenceSettings.getState().mode === "local"
+      ? (local ??= createLocalTransport(getLockedCode))
+      : (cloud ??= createCloudTransport(getLockedCode));
+  return {
+    sendMessages: (options) => current().sendMessages(options),
+    reconnectToStream: (options) => current().reconnectToStream(options),
+  };
 }
-
-/** UI message type produced by the chat agent (text parts only; no tools). */
-export type ChatUIMessage = InferAgentUIMessage<ToolLoopAgent<never, Record<string, never>, never>>;

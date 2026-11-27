@@ -2,18 +2,20 @@
 
 import { CircleAlertIcon, InfoIcon, RotateCwIcon } from "lucide-react";
 
-import { getModelConfig } from "@/lib/ai/models";
+import { getLocalModel } from "@/lib/ai/models";
 import { modelManager } from "@/lib/ai/model-manager";
 import { useModelManager } from "@/hooks/use-model-manager";
+import { useInferenceSettings } from "@/hooks/use-inference-settings";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 
-/** Status line above the prompt: download/load progress, errors with retry, WebGPU notice. */
+/** Offline mode status line above the prompt: download/load progress, errors with retry, WebGPU notice. */
 export function ModelStatusNotice() {
+  const { mode } = useInferenceSettings();
   const { webgpu, activeId, models } = useModelManager();
-  const model = getModelConfig(activeId);
+  const model = getLocalModel(activeId);
   const status = models[activeId];
-  if (!model || !status) return null;
+  if (mode !== "local" || !model || !status) return null;
 
   let line: React.ReactNode = null;
   if (status.kind === "downloading" || status.kind === "loading") {
