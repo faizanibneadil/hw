@@ -3,13 +3,13 @@
 import { CheckIcon, DownloadIcon, RotateCwIcon } from "lucide-react";
 
 import { cn } from "@/lib/utils";
-import type { ModelConfig } from "@/lib/ai/models";
+import type { LocalModelConfig } from "@/lib/ai/models";
 import { isSelectable, modelManager, type ModelStatus } from "@/lib/ai/model-manager";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 
 interface ModelOptionProps {
-  model: ModelConfig;
+  model: LocalModelConfig;
   status: ModelStatus | undefined;
   active: boolean;
   /** Selection is temporarily disabled (a response is generating). */

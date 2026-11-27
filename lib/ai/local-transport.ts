@@ -1,17 +1,17 @@
-import type { LanguageModelV3 } from "@ai-sdk/provider";
-import { DirectChatTransport, ToolLoopAgent, stepCountIs, type InferAgentUIMessage } from "ai";
+import type { LanguageModelV4 } from "@ai-sdk/provider";
+import { DirectChatTransport, ToolLoopAgent, isStepCount, type ChatTransport, type UIMessage } from "ai";
 
-import { MAX_OUTPUT_TOKENS, getModelConfig } from "@/lib/ai/models";
+import { MAX_OUTPUT_TOKENS, getLocalModel } from "@/lib/ai/models";
 import { SYSTEM_PROMPT } from "@/lib/ai/system-prompt";
-import { estimateTokens, formatLockedCode, referenceFirstMessageCode, trimHistory, type LockedCode } from "@/lib/ai/context";
+import { formatLockedCode, prepareHistory, type LockedCode } from "@/lib/ai/context";
 import { modelManager } from "@/lib/ai/model-manager";
 
 /**
  * Stable model handle for the agent that forwards to whichever model is active in the
  * model manager, so switching models does not require a new transport.
  */
-const activeModel: LanguageModelV3 = {
-  specificationVersion: "v3",
+const activeModel: LanguageModelV4 = {
+  specificationVersion: "v4",
   provider: "hw",
   modelId: "active",
   supportedUrls: {},
@@ -19,39 +19,36 @@ const activeModel: LanguageModelV3 = {
   doStream: (options) => requireActiveModel().doStream(options),
 };
 
-function requireActiveModel(): LanguageModelV3 {
+function requireActiveModel(): LanguageModelV4 {
   const model = modelManager.getActiveModel();
-  if (!model) throw new Error("The model is not ready yet. Wait until it has finished loading and try again.");
+  if (!model) throw new Error("The offline model is not ready yet. Wait until it has finished loading and try again.");
   return model;
 }
 
 /**
- * In-browser chat transport: `DirectChatTransport` runs the agent in-process (no HTTP).
- * Every request gets: the fixed system prompt, the chat's locked student code, and the
- * (trimmed) conversation history.
+ * Offline / Private mode transport: `DirectChatTransport` runs the agent in-process (no HTTP)
+ * on the in-browser model. Every request gets: the fixed system prompt, the chat's locked
+ * student code, and the (trimmed) conversation history.
  */
-export function createChatTransport(getLockedCode: () => LockedCode) {
+export function createLocalTransport(getLockedCode: () => LockedCode): ChatTransport<UIMessage> {
   const agent = new ToolLoopAgent({
     model: activeModel,
     instructions: SYSTEM_PROMPT,
     maxOutputTokens: MAX_OUTPUT_TOKENS,
     temperature: 0.2,
-    stopWhen: stepCountIs(1),
+    stopWhen: isStepCount(1),
     prepareStep: ({ messages }) => {
       const codeMessage = formatLockedCode(getLockedCode());
-      const contextTokens = getModelConfig(modelManager.getState().activeId)?.contextTokens ?? 8192;
-      const budget = contextTokens - MAX_OUTPUT_TOKENS - estimateTokens(SYSTEM_PROMPT) - estimateTokens(codeMessage);
+      const contextTokens = getLocalModel(modelManager.getState().activeId)?.contextTokens ?? 8192;
       return {
-        system: [
+        instructions: [
           { role: "system", content: SYSTEM_PROMPT },
           { role: "system", content: codeMessage },
         ],
-        messages: trimHistory(referenceFirstMessageCode(messages), Math.max(budget, 0)),
+        messages: prepareHistory(messages, codeMessage, contextTokens),
       };
     },
   });
-  return new DirectChatTransport({ agent });
+  // The agent has no tools or data parts, so its messages are plain text UI messages.
+  return new DirectChatTransport({ agent }) as unknown as ChatTransport<UIMessage>;
 }
-
-/** UI message type produced by the chat agent (text parts only; no tools). */
-export type ChatUIMessage = InferAgentUIMessage<ToolLoopAgent<never, Record<string, never>, never>>;
